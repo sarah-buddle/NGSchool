@@ -1,6 +1,6 @@
 # Command line tools for metagenomics analysis
 
-If you have never used the UNIX/Linux command line, skip straight to the **Online tools for metagenomics analysis** section. If you have used the command line before but you have need to refresh your memory, listen to the demo in class before you start.
+If you have never used the UNIX/Linux command line, skip straight to the **Online tools for metagenomics analysis** section. If you have used the command line before but you have need to refresh your memory, listen to the demo in class before you start the command line section.
 
 ## Background
 One of the main uses of metagenomics in clinical laboratories is in the diagnosis of patients with serious central nervous system infections like encephalitis. Encephalitis can have lots of possible causes, including infection with viruses, bacteria, fungi or parasites, an autoimmune response, or the toxic effects of drugs. We would usually test invasive and precious samples like CSF or brain biopsy, so there isn’t much material to run lots of tests. This makes an untargeted approach like metagenomics useful.
@@ -9,7 +9,17 @@ In this tutorial, you will analyse a (not real!) dataset from a CSF sample from 
 
 ## Before you start
 
-We’ll run the tutorial in the ~/metagenomics directory (remember the ~ means the home directory). Navigate to this directory and have a look inside. You should find:
+The software needed for this tutorial is installed in a micromamba environment. Activate it before you start:
+
+```
+micromamba activate ngschool
+```
+Then navigate to the local directory where the data is stored:
+```
+cd /home/sbuddle/ngschool_2025_local/sarah
+```
+
+Have a look inside this directory. You should find:
 - data directory: contains the sample and negative control datasets, as well as the human genome (it’s not the actual human genome due to space constraints, but it will work for this practical)
 - kraken_db directory: contains the database that we’ll use for classification later
 
@@ -27,9 +37,24 @@ Whenever you run a new bioinformatics tool, it’s a good idea to look at search
 trim_galore --help
 trim_galore -h
 ```
-The files are available in the folder ~/metagenomics/data.
+The files are available in the data directory.
 
 **1.	Write a command to trim adaptors and low quality regions from your data.**
+
+Use a minimum quality score of 15 and a minimum length of 60. You can leave all the other options (other than the ones needed to supply your input files) as the default.
+
+<details>
+<summary><b>Clues</b></summary>
+    
+Your command should take the form:
+
+   <pre>
+trim_galore -q 15 --length 60 --paired <i>path/to/read1/fastq/file path/to/read2/fastq/file</i>
+    </pre>
+
+Swap the parts in <i>italics</i> for your file names.
+    
+</details>
 
 ## Human removal
 We want to find out what microbes are in the sample, so we are not interested in the human reads. We’ll therefore filter them out with alignment before we do anything else.
@@ -38,36 +63,54 @@ We want to find out what microbes are in the sample, so we are not interested in
 
 Use the command BWA-mem. Remember to index the genome first.
 
+<details>
+<summary><b>Clues</b></summary>
+    
+Your command to index the human genome should take the form:
+
+   <pre>
+bwa index <i>path/to/human/fasta/file</i>
+    </pre>
+
+Swap the parts in <i>italics</i> for your file names.
+    
+</details>
+
+<details>
+<summary><b>Clues</b></summary>
+    
+Your command to align the reads to the human genome should take the form:
+
+   <pre>
+bwa mem <i>path/to/human/fasta/file trimgalore_output_read1 trimgalore_output_read2</i> > <i>outfile.sam</i>
+    </pre>
+
+Swap the parts in <i>italics</i> for your file names.
+    
+</details>
+
 **3.	What is the output format of the alignment?**
 
 **4.	How could we use our alignment to get the non-human reads?**
 
 You’ve not yet been given the commands to do this, so they are below. Remember you might need to change the input file name to match your output from the last step. Make sure you understand what they are doing before you run them!
 
+Extract the non-aligned reads to a bam file:
 ```
-samtools view -bf 4 -h ~/metagenomics/sample1.sam > ~/metagenomics/sample1_nonhuman.bam
-samtools view -bf 4 -h ~/metagenomics/neg_control.sam > ~/metagenomics/neg_control_nonhuman.bam
-
-samtools fastq ~/metagenomics/sample1_nonhuman.bam -1 ~/metagenomics/sample1_nonhuman_1.fq -2 ~/metagenomics/sample1_nonhuman_2.fq
-samtools fastq ~/metagenomics/neg_control_nonhuman.bam -1 ~/metagenomics/neg_control_nonhuman_1.fq -2 ~/metagenomics/neg_control_nonhuman_2.fq
+samtools view -bf 4 -h sample1.sam > sample1_nonhuman.bam
+samtools view -bf 4 -h neg_control.sam > neg_control_nonhuman.bam
+```
+Convert bam file to fastq:
+```
+samtools fastq sample1_nonhuman.bam -1 sample1_nonhuman_1.fq -2 sample1_nonhuman_2.fq
+samtools fastq neg_control_nonhuman.bam -1 neg_control_nonhuman_1.fq -2 neg_control_nonhuman_2.fq
 ```
 Be aware if you use this samtools command elsewhere, it will extract reads that didn't align in pairs to the genome, but it is fine for our purposes.
-
-You can ignore this error message if it appears:
-```
-samtools: /home/manager/miniconda3/envs/bioinfo_env/bin/../lib/libtinfow.so.6: no version information available (required by samtools)
-```
 
 ## Classification
 
 Now you’ve performed quality control and removed the human reads, we’re ready to run a classifier to determine what species are present by comparison to a reference database. We’re going to use the programs kraken2 and bracken, which are some of the most widely used tools for this purpose and run very fast.
-Kraken2 and Bracken need a database of known reference sequences. This can be found in the ~/metagenomics/kraken_db directory. If you’re trying this yourself on your own computer, you can download prebuilt databases from: https://benlangmead.github.io/aws-indexes/k2
-Whenever you run a new bioinformatics tool, it’s a good idea to look at search for the manual online. You can usually find out how to run the tool using the help command, for example:
-
-```
-kraken2 --help
-kraken2 -h
-```
+Kraken2 and Bracken need a database of known reference sequences. This can be found in the kraken_db directory. If you’re trying this yourself on your own computer, you can download prebuilt databases from: https://benlangmead.github.io/aws-indexes/k2
 
 **5.	Write a command to run kraken2 on your data.**
     
@@ -117,7 +160,7 @@ Swap the parts in italics for your file names.
 
 <details>
 <summary><b>Clues</b></summary>
-Look at the file ~/metagenomics/sample1_bracken.txt from your previous command.
+Look at the file sample1_bracken.txt from your previous command.
 Look at the column heading and the bracken manual at https://ccb.jhu.edu/software/bracken/index.shtml?t=manual (bottom of the page). 
     
 </details>
@@ -148,7 +191,7 @@ Sometimes you might want to extract the reads that were classified as a particul
 
 <details>
 <summary><b>Clues</b></summary>
-Look in ~/metagenomics/sample1_kraken_readclassifications.txt 
+Look in sample1_kraken_readclassifications.txt 
 </details>
 
 <details>
