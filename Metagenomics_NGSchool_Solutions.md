@@ -1,13 +1,15 @@
 # Solutions
+Make sure you are in the correct directory before you run any commands.
+```
+cd /home/sbuddle/ngschool_2025_local/sarah
+```
 
 **1.	Write a command using trim_galore to trim adaptors and low quality regions from your data.**
 <details>
 <summary><b>Solution</b></summary>
 <pre>
- cd ~/metagenomics
- 
- trim_galore -q 15 --length 60 --paired ~/metagenomics/data/sample1_1.fq.gz ~/metagenomics/data/sample1_2.fq.gz
- trim_galore -q 15 --length 60 --paired ~/metagenomics/data/neg_control_1.fq.gz ~/metagenomics/data/neg_control_2.fq.gz
+ trim_galore -q 15 --length 60 --paired data/sample1_1.fq.gz data/sample1_2.fq.gz
+ trim_galore -q 15 --length 60 --paired data/neg_control_1.fq.gz data/neg_control_2.fq.gz
 </pre>
  
 You might have chosen to use different values for -q and --length, but these are the ones used in the previous session and they will work well for our purposes today.
@@ -18,12 +20,12 @@ You might have chosen to use different values for -q and --length, but these are
 <summary><b>Solution</b></summary>
 <pre>
 # Index the human genome
-bwa index ~/metagenomics/data/human_genome.fasta
+bwa index data/human_genome.fasta
 </pre>
 <pre>
 # Align the reads to the human genome
-bwa mem -t 4 ~/metagenomics/data/human_genome.fasta sample1_1_val_1.fq.gz sample1_2_val_2.fq.gz > ~/metagenomics/sample1.sam
-bwa mem -t 4 ~/metagenomics/data/human_genome.fasta neg_control_1_val_1.fq.gz neg_control_2_val_2.fq.gz > ~/metagenomics/neg_control.sam
+bwa mem data/human_genome.fasta sample1_1_val_1.fq.gz sample1_2_val_2.fq.gz > sample1.sam
+bwa mem data/human_genome.fasta neg_control_1_val_1.fq.gz neg_control_2_val_2.fq.gz > neg_control.sam
 </pre>
 </details>
 
@@ -45,18 +47,18 @@ Convert the resulting bam file back to fastq.
 <details>
 <summary><b>Solution</b></summary>
 <pre>
-kraken2 --db ~/metagenomics/kraken_db \
---paired ~/metagenomics/sample1_nonhuman_1.fq \
-~/metagenomics/sample1_nonhuman_2.fq \
---report ~/metagenomics/sample1_kraken_report.txt \
-> ~/metagenomics/sample1_kraken_readclassifications.txt
+kraken2 --db kraken_db \
+--paired sample1_nonhuman_1.fq \
+sample1_nonhuman_2.fq \
+--report sample1_kraken_report.txt \
+> sample1_kraken_readclassifications.txt
 </pre>
 <pre>
-kraken2 --db ~/metagenomics/kraken_db \
---paired ~/metagenomics/neg_control_nonhuman_1.fq \
-~/metagenomics/neg_control_nonhuman_2.fq \
---report ~/metagenomics/neg_control_kraken_report.txt \
-> ~/metagenomics/neg_control_kraken_readclassifications.txt
+kraken2 --db kraken_db \
+--paired neg_control_nonhuman_1.fq \
+neg_control_nonhuman_2.fq \
+--report neg_control_kraken_report.txt \
+> neg_control_kraken_readclassifications.txt
 </pre>
 We provide paths to the reference sequence database and the paired-end input fastq files. We output both a summary report and a file that gives the classifications of each read individually.
 </details>
@@ -71,15 +73,15 @@ See https://github.com/DerrickWood/kraken2/wiki/Manual#sample-report-output-form
 <details>
 <summary><b>Solution</b></summary>
 <pre>
-bracken -d ~/metagenomics/kraken_db \
--i ~/metagenomics/sample1_kraken_report.txt \
--o ~/metagenomics/sample1_bracken.txt \
+bracken -d kraken_db \
+-i sample1_kraken_report.txt \
+-o sample1_bracken.txt \
 -t 3
 </pre>
 <pre>
-bracken -d ~/metagenomics/kraken_db \
--i ~/metagenomics/neg_control_kraken_report.txt \
--o ~/metagenomics/neg_control_bracken.txt \
+bracken -d kraken_db \
+-i neg_control_kraken_report.txt \
+-o neg_control_bracken.txt \
 -t 3
 </pre>
 We provide the path to the reference database and the kraken2 report as input. We then provide an output file name and set the minimum number of reads required to perform reestimation at 3.
@@ -106,14 +108,14 @@ The negative control also contains ~5 reads of cytomegalovirus so this is probab
 **11.    How can you tell which reads were assigned to human mastadenovirus F?**
 <details>
 <summary><b>Solution</b></summary>
-In the ~/metagenomics/sample1_kraken_readclassifications.txt  file, the third column gives the taxon ID of the species that read was assigned to. The second column gives the read ID, which can be found in the read header in the fastq file.
+In the sample1_kraken_readclassifications.txt  file, the third column gives the taxon ID of the species that read was assigned to. The second column gives the read ID, which can be found in the read header in the fastq file.
 </details>
 
 **12.    Choose a read that was assigned to adenovirus. How could you extract the entry corresponding to this read from the nonhuman fastq file?**
 <details>
 <summary><b>Solution</b></summary>
 <pre>
-grep 'A01897:100:HLTLTDRX3:2:2132:8223:9784' ~/metagenomics/sample1_nonhuman_1.fq -A 3 > ~/metagenomics/adenovirus_read.fastq
+grep 'A01897:100:HLTLTDRX3:2:2132:8223:9784' sample1_nonhuman_1.fq -A 3 > adenovirus_read.fastq
 </pre>
 This command searches for a read ID and also extracts the next three lines in the file.
 You might have used a different read ID since there are multiple reads classified as adenovirus.
@@ -137,7 +139,7 @@ It could be useful to create genome coverage plots for the viruses we've identif
 For example:
 <pre>
 for sample1 neg_control; do
-    trim_galore -q 15 --length 60 --paired ~/metagenomics/data/${sample}_1.fq.gz ~/metagenomics/data/${sample}_2.fq.gz
+    trim_galore -q 15 --length 60 --paired data/${sample}_1.fq.gz data/${sample}_2.fq.gz
 done
 </pre>
 </details>
@@ -147,12 +149,12 @@ done
 <summary><b>Solution</b></summary>
 <pre>
 # Select all the reads that were assigned to adenovirus (3rd column is equal to 130309) and print 2nd column (read ID) to a file
-awk '$3==130309 {print $2}' ~/metagenomics/sample1_kraken_readclassifications.txt > ~/metagenomics/adenovirus_read_ids.txt
+awk '$3==130309 {print $2}' sample1_kraken_readclassifications.txt > adenovirus_read_ids.txt
 </pre>
 <pre>
 # Extract the read IDs from the fastq file
-grep -F -f ~/metagenomics/adenovirus_read_ids.txt ~/metagenomics/sample1_nonhuman_1.fq -A 3 > ~/metagenomics/adenovirus_reads_1.fq
-grep -F -f ~/metagenomics/adenovirus_read_ids.txt ~/metagenomics/sample1_nonhuman_2.fq -A 3 > ~/metagenomics/adenovirus_reads_2.fq
+grep -F -f adenovirus_read_ids.txt sample1_nonhuman_1.fq -A 3 > adenovirus_reads_1.fq
+grep -F -f adenovirus_read_ids.txt sample1_nonhuman_2.fq -A 3 > adenovirus_reads_2.fq
 </pre>
 </details>
 
